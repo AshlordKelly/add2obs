@@ -1,11 +1,11 @@
 [package]
 name = "add2obs"
-version = "1.0.0"
+version = "2.0.0"
 authors = ["Ash Keel <ashlordkelly@bulge.exposed>"]
 edition = "2018"
 
 [dependencies]
-obws = "0.7"
+obws = "0.10"
 structopt = { version = "0.3", default-features = false }
 tokio = { version = "1", features = ["full"] }
 anyhow = "1"

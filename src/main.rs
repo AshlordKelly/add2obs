@@ -1,7 +1,10 @@
 use anyhow::Result;
-use obws::{Client, requests::CreateSource};
+use obws::{requests::inputs::Create, Client};
 use serde_json::json;
-use std::path::{Path, PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -9,6 +12,9 @@ use structopt::StructOpt;
 struct Opt {
     #[structopt(short = "h", long = "host", default_value = "localhost")]
     hostname: String,
+
+    #[structopt(short = "k", long = "password")]
+    password: Option<String>,
 
     #[structopt(short = "p", long = "port", default_value = "4444")]
     port: u16,
@@ -21,19 +27,21 @@ struct Opt {
 #[tokio::main]
 async fn main() -> Result<()> {
     let opt = Opt::from_args();
-    let client = Client::connect(opt.hostname, opt.port).await?;
+    let client = Client::connect(opt.hostname, opt.port, opt.password).await?;
     let path = Path::new(&opt.input);
-    let current_scene = client.scenes().get_current_scene().await?.name;
+    let current_scene = client.scenes().current_program_scene().await?;
 
-    client.sources().create_source(CreateSource{
-        source_name: path.file_name().unwrap().to_str().unwrap(),
-        source_kind: "image_source",
-        scene_name: &current_scene,
-        set_visible: Some(true),
-        source_settings: Some(&json!({
-            "file": path.to_str().unwrap(),
-        })),
-    }).await?;
-
+    client
+        .inputs()
+        .create(Create {
+            scene: current_scene.as_str(),
+            kind: "image_source",
+            enabled: Some(true),
+            input: path.file_name().unwrap().to_str().unwrap(),
+            settings: Some(&json!({
+                "file": fs::canonicalize(path.to_str().unwrap()).unwrap(),
+            })),
+        })
+        .await?;
     Ok(())
 }
